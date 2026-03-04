@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "ffm",
+  "version": "${version}",
+  "name": "Farseer for Minecraft",
+  "description": "Farseer Positioning System for Minecraft",
+  "authors": ["G4M3RxHa2oH"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/ffm/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.ffm.FFMMod"
+    ]
+  },
+  "mixins": [
+    "ffm.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

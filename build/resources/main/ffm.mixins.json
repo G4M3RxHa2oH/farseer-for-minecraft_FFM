@@ -4,8 +4,7 @@
   "package": "net.ffm.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "EntityMixin",
-    "WorldRendererMixin"
+    "EntityMixin"
   ],
   "client": [],
   "injectors": {

@@ -1,0 +1,20 @@
+{
+  "mappings": {
+    "net/ffm/mixin/EntityMixin": {
+      "tick": "Lnet/minecraft/class_1297;method_5773()V"
+    },
+    "net/ffm/mixin/WorldRendererMixin": {
+      "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_4587;FJZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;)V"
+    }
+  },
+  "data": {
+    "named:intermediary": {
+      "net/ffm/mixin/EntityMixin": {
+        "tick": "Lnet/minecraft/class_1297;method_5773()V"
+      },
+      "net/ffm/mixin/WorldRendererMixin": {
+        "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_4587;FJZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;)V"
+      }
+    }
+  }
+}

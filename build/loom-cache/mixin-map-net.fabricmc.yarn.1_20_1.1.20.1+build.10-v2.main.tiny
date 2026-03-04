@@ -1,0 +1,2 @@
+v1	named	intermediary
+FIELD	net/ffm/mixin/WorldRendererMixin	Lnet/minecraft/client/world/ClientWorld;	world	field_4085
