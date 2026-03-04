@@ -2,14 +2,16 @@ package net.ffm.mixin;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.ffm.FarseerEngine;
+import net.ffm.FarseerScanner;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.BlockPos;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import java.util.Map;
+import java.util.HashMap;
 
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
@@ -19,42 +21,49 @@ public class WorldRendererMixin {
                           net.minecraft.client.render.Camera camera, GameRenderer gameRenderer, 
                           LightmapTextureManager lightmapTextureManager, Matrix4f projectionMatrix, CallbackInfo ci) {
         
-        if (FarseerEngine.SILHOUETTE_BLOCKS.isEmpty()) return;
+        if (FarseerEngine.SILHOUETTE_MAP.isEmpty()) return;
 
         double camX = camera.getPos().x;
         double camY = camera.getPos().y;
         double camZ = camera.getPos().z;
         int viewDistSq = FarseerEngine.getRenderDistanceBlocks() * FarseerEngine.getRenderDistanceBlocks();
 
-        RenderSystem.disableDepthTest();
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
-        
+
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
         
-        // Wir nutzen DEBUG_LINES für ein Gitter-Gefühl
-        buffer.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
-
+        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
-        for (BlockPos pos : FarseerEngine.SILHOUETTE_BLOCKS) {
-            double dx = pos.getX() - camX;
-            double dy = pos.getY() - camY;
-            double dz = pos.getZ() - camZ;
-            
-            // Distanz-Check: Nur weit entfernte zeichnen
-            if (dx*dx + dz*dz < viewDistSq) continue;
+        Map<Long, FarseerScanner.HeightData> copyMap = new HashMap<>(FarseerEngine.SILHOUETTE_MAP);
 
-            // Zeichne ein kleines Kreuz statt einer ganzen Box (spart 10 Linien pro Punkt)
-            // Linie 1 (Horizontal)
-            buffer.vertex(matrix, (float)dx, (float)dy, (float)dz).color(0f, 1f, 1f, 0.5f).next();
-            buffer.vertex(matrix, (float)dx + 1f, (float)dy, (float)dz).color(0f, 1f, 1f, 0.5f).next();
-            // Linie 2 (Vertikal)
-            buffer.vertex(matrix, (float)dx, (float)dy, (float)dz).color(0f, 1f, 1f, 0.5f).next();
-            buffer.vertex(matrix, (float)dx, (float)dy + 1f, (float)dz).color(0f, 1f, 1f, 0.5f).next();
+        for (Map.Entry<Long, FarseerScanner.HeightData> entry : copyMap.entrySet()) {
+            long key = entry.getKey();
+            int x = (int)(key >> 32);
+            int z = (int)(key & 0xFFFFFFFFL);
+            FarseerScanner.HeightData h = entry.getValue();
+
+            double dx = x - camX;
+            double dz = z - camZ;
+            double distSq = dx*dx + dz*dz;
+
+            if (distSq > viewDistSq && distSq < 1024 * 1024) {
+                float alpha = (float) Math.max(0.01, 0.5 - (Math.sqrt(distSq) / 1024.0));
+                float r = 0.05f; float g = 0.15f; float b = 0.25f; // Dunklerer Nebel-Look
+
+                int s = 16;
+                buffer.vertex(matrix, (float)dx, (float)(h.h00 - camY), (float)dz).color(r, g, b, alpha).next();
+                buffer.vertex(matrix, (float)(dx + s), (float)(h.h10 - camY), (float)dz).color(r, g, b, alpha).next();
+                buffer.vertex(matrix, (float)(dx + s), (float)(h.h11 - camY), (float)(dz + s)).color(r, g, b, alpha).next();
+                buffer.vertex(matrix, (float)dx, (float)(h.h01 - camY), (float)(dz + s)).color(r, g, b, alpha).next();
+            }
         }
         
         tessellator.draw();
-        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
     }
 }

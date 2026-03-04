@@ -1,44 +1,47 @@
 package net.ffm.mixin;
 
 import net.ffm.FarseerEngine;
+import net.ffm.FarseerScanner;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Heightmap;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import java.util.concurrent.CompletableFuture;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
+    private boolean isScanning = false;
+
     @Inject(method = "tick", at = @At("HEAD"))
     private void onTick(CallbackInfo info) {
         if ((Object) this instanceof PlayerEntity player && player.getWorld().isClient) {
-            if (player.getWorld().getTime() % 60 == 0) { // Seltener scannen reicht (alle 3 Sek)
+            if (player.getWorld().getTime() % 100 == 0 && !isScanning) {
+                isScanning = true;
                 World world = player.getWorld();
-                BlockPos pPos = player.getBlockPos();
-                int viewDist = FarseerEngine.getRenderDistanceBlocks();
+                int px = player.getBlockX();
+                int pz = player.getBlockZ();
                 int maxFarsee = 512;
 
-                // Wir scannen nur den äußeren Ring (da wo der Nebel beginnt)
-                // Um Lücken zu vermeiden, scannen wir in 1-Block-Schritten
-                for (int x = -maxFarsee; x <= maxFarsee; x += 16) { // Grobes Raster für Chunks
-                    for (int z = -maxFarsee; z <= maxFarsee; z += 16) {
-                        double dist = Math.sqrt(x*x + z*z);
-                        if (dist > viewDist && dist <= maxFarsee) {
-                            int worldX = pPos.getX() + x;
-                            int worldZ = pPos.getZ() + z;
-                            int y = world.getTopY(Heightmap.Type.WORLD_SURFACE, worldX, worldZ);
-                            
-                            // Nur hinzufügen, wenn es nicht der "Null-Punkt" (Ladefehler) ist
-                            if (y > world.getBottomY() + 10) {
-                                FarseerEngine.SILHOUETTE_BLOCKS.add(new BlockPos(worldX, y, worldZ));
+                CompletableFuture.runAsync(() -> {
+                    int startX = ((px - maxFarsee) / 16) * 16;
+                    int endX = ((px + maxFarsee) / 16) * 16;
+                    int startZ = ((pz - maxFarsee) / 16) * 16;
+                    int endZ = ((pz + maxFarsee) / 16) * 16;
+
+                    for (int x = startX; x <= endX; x += 16) {
+                        for (int z = startZ; z <= endZ; z += 16) {
+                            long key = FarseerEngine.getChunkKey(x, z);
+                            if (!FarseerEngine.SILHOUETTE_MAP.containsKey(key)) {
+                                FarseerScanner.HeightData data = FarseerScanner.getPredictedHeightQuad(x, z, world);
+                                FarseerEngine.SILHOUETTE_MAP.put(key, data);
                             }
                         }
                     }
-                }
+                    isScanning = false;
+                });
             }
         }
     }
