@@ -1,1 +1,0 @@
-# Farseer for Minecraft (FFM)

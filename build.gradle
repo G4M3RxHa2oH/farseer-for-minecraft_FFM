@@ -1,0 +1,25 @@
+plugins {
+    id 'fabric-loom' version '1.6-SNAPSHOT'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+dependencies {
+    // Minecraft Kern-Dateien
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    
+    // Mappings (übersetzt den Buchstabensalat von Mojang in lesbare Namen)
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    
+    // Der Loader, der den Mod startet
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Das Fabric API (Werkzeuge für Befehle, Rendering etc.)
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.2+1.20.1"
+}
+
+// Damit Java weiß, dass wir für Version 17 kompilieren
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+}
