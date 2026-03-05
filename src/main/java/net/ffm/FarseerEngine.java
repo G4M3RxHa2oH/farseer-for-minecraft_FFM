@@ -1,12 +1,20 @@
-public class FarseerEngine {
-    // Der binäre Cache: Region -> [X][Z] -> Y-Wert
-    // Wir nutzen ein Byte (0-255), das reicht für Minecraft-Höhen aus.
-    public static final Map<Long, byte[][]> WORLD_HEIGHT_CACHE = new ConcurrentHashMap<>();
+package net.ffm;
 
-    public static int getLodStep(double distance) {
-        if (distance < 256) return 1;  // LOD1: 1x1
-        if (distance < 512) return 2;  // LOD2: 2x2
-        if (distance < 1024) return 4; // LOD3: 4x4
-        return 8;                      // LOD4: 8x8
+import net.minecraft.client.MinecraftClient;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class FarseerEngine {
+    // Speichert X_Z als Key für schnellen Zugriff und Lückenlosigkeit
+    // Als Value speichern wir jetzt die Höhendaten für alle 4 Ecken
+    public static final Map<Long, FarseerScanner.HeightData> SILHOUETTE_MAP = new ConcurrentHashMap<>();
+
+    public static long getChunkKey(int x, int z) {
+        return ((long)x << 32) | (z & 0xFFFFFFFFL);
+    }
+
+    public static int getRenderDistanceBlocks() {
+        if (MinecraftClient.getInstance().options == null) return 128;
+        return MinecraftClient.getInstance().options.getClampedViewDistance() * 16;
     }
 }
